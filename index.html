@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chest Collector</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap">
+<style>
+:root{--bg:#efe6d3;--panel:#f8f1e2;--ink:#2b2418;--muted:#6f6450;--wood:#8a5a34;--wood2:#5e3a1e;--gold:#c48a0a;--line:#d6c8a8;--rc:#7d838a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c2420;--panel:#26312b;--ink:#f0ead8;--muted:#a3ad9f;--gold:#f0c040;--line:#3a483f}}
+:root[data-theme="dark"]{--bg:#1c2420;--panel:#26312b;--ink:#f0ead8;--muted:#a3ad9f;--gold:#f0c040;--line:#3a483f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.hud{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:14px 18px}
+.coins{font-size:2.2rem;font-weight:600;color:var(--gold);line-height:1;word-break:break-all}
+.hud small{display:block;color:var(--muted);font-size:.9rem;margin-top:4px}
+.rate{text-align:right;font-size:1.15rem;font-weight:600}
+.slots{display:flex;gap:8px;margin-bottom:12px}
+.slotbtn{flex:1;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;padding:9px 4px;font-weight:600;cursor:pointer}
+.slotbtn[aria-pressed="true"]{background:var(--wood);color:#fff8e8;border-color:var(--wood2)}
+.tabs{display:flex;gap:6px;margin:16px 0}
+.tab{flex:1;position:relative;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;padding:9px 4px;font-weight:600;font-size:.88rem;cursor:pointer}
+.badge{position:absolute;top:-8px;right:-6px;background:#d6342f;color:#fff;width:20px;height:20px;border-radius:50%;font-size:.8rem;line-height:20px;font-weight:700;box-shadow:0 0 0 2px var(--bg)}
+#toast{position:fixed;inset:0;background:#d6342f;color:#fff;font-weight:600;font-size:1.8rem;text-align:center;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+#toast.show{opacity:1}
+.tab[aria-selected="true"]{background:var(--wood);color:#fff8e8;border-color:var(--wood2)}
+.panel[hidden]{display:none}
+#chestimg{width:150px;display:block;margin:4px auto 0}
+#lid{transform-origin:30px 84px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.open #lid{transform:rotate(-38deg)}
+#drop{min-height:88px;margin:10px 0;text-align:center}
+.card{display:inline-block;background:var(--panel);border:2px solid var(--rc);border-radius:14px;padding:10px 20px;animation:pop .35s ease-out}
+.card b{display:block;font-size:1.1rem}
+.card span{color:var(--rc);font-size:.9rem;font-weight:600}
+.card i{font-style:normal;color:var(--gold);font-weight:600;display:block;margin-top:2px}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--rc);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.row b{display:block;color:var(--rc)}
+.row small{color:var(--muted)}
+.buy{background:var(--wood);color:#fff8e8;border:0;border-bottom:4px solid var(--wood2);border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.buy:active:not(:disabled){transform:translateY(2px);border-bottom-width:2px}
+.buy:disabled{opacity:.5;cursor:not-allowed}
+h2{font-size:1.05rem;margin:0 0 8px;display:flex;justify-content:space-between}
+h2 em{font-style:normal;color:var(--muted);font-weight:400}
+.empty{color:var(--muted);padding:8px 0}
+.item{display:flex;justify-content:space-between;gap:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--rc);border-radius:8px;padding:8px 12px;margin-bottom:6px}
+.item span{color:var(--gold);font-weight:600;white-space:nowrap}
+.item small{display:block;color:var(--rc);font-weight:600}
+#reset{background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;padding:10px 22px;font-weight:600;cursor:pointer;margin-top:22px;width:100%}
+@media (prefers-reduced-motion:reduce){#lid{transition:none}.card{animation:none}}
+.prog{text-align:center;color:var(--muted);font-size:.9rem;margin:0 0 10px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:4px}
+.cols>div{min-width:0}
+.cols h3{margin:0 0 8px;font-size:1rem;text-align:center;color:var(--muted);font-weight:600}
+.cols .row{flex-direction:column;align-items:stretch;gap:8px;padding:10px}
+.cols .row small{font-size:.8rem}
+.cols .buy{width:100%;white-space:normal;font-size:.9rem;padding:8px 6px;word-break:break-word}
+.rb{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:18px}
+.rb p{color:var(--muted);margin:0 0 14px;font-size:.95rem}
+.rbrow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);word-break:break-all;gap:12px}
+.rbrow b{color:var(--gold)}
+.hpbar{background:var(--bg);border:2px solid var(--line);border-radius:10px;height:16px;overflow:hidden;margin:10px 0}
+.hpfill{height:100%;background:#c0492f;transition:width .2s}
+#quiz[hidden]{display:none}
+#quiz{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.qbox{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:22px;width:100%;max-width:340px;text-align:center}
+.qbox h3{margin:0 0 4px;font-size:1.1rem}
+.qbox p{margin:0 0 12px;color:var(--muted);font-size:.9rem}
+#qtext{font-size:2.2rem;font-weight:600;margin:6px 0 12px}
+.qin{display:flex;gap:8px;margin-bottom:10px}
+#ans{flex:1;min-width:0;font:inherit;font-size:1.4rem;text-align:center;background:var(--bg);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:8px}
+#sign{width:52px;background:var(--bg);border:2px solid var(--line);border-radius:10px;font-size:1.4rem;font-weight:600;cursor:pointer}
+#qmsg{min-height:1.3em;color:#c0492f;font-weight:600;margin-bottom:8px}
+.qbtns{display:flex;gap:8px}
+.qbtns button{flex:1;padding:10px;border-radius:10px;font-weight:600;cursor:pointer;border:2px solid var(--line);background:var(--bg)}
+#qgo{background:var(--wood)!important;color:#fff8e8;border-color:var(--wood2)!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="slots" role="tablist" aria-label="Game slots">
+    <button class="slotbtn" id="slot0" aria-pressed="true">Game 1</button>
+    <button class="slotbtn" id="slot1" aria-pressed="false">Game 2</button>
+    <button class="slotbtn" id="slot2" aria-pressed="false">Game 3</button>
+  </div>
+  <div class="hud">
+    <div><div class="coins" id="coins">0</div><small>coins</small></div>
+    <div class="rate"><span id="rate">0</span> / sec<small><span id="count">0</span></small></div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-chests" aria-selected="true">Chests</button>
+    <button class="tab" role="tab" id="t-items" aria-selected="false">Items</button>
+    <button class="tab" role="tab" id="t-rebirth" aria-selected="false">Rebirth<span class="badge" id="rbbadge" hidden>!</span></button>
+    <button class="tab" role="tab" id="t-battle" aria-selected="false">Battle</button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <section class="panel" id="p-chests">
+    <svg id="chestimg" viewBox="0 0 120 100" aria-hidden="true">
+      <rect x="10" y="48" width="100" height="46" rx="6" fill="#8a5a34" stroke="#3b2411" stroke-width="3"/>
+      <rect x="10" y="62" width="100" height="6" fill="#5e3a1e"/>
+      <rect x="52" y="56" width="16" height="18" rx="3" fill="var(--rc)" stroke="#3b2411" stroke-width="2.5"/>
+      <g id="lid">
+        <path d="M10 48 V34 Q10 14 60 14 Q110 14 110 34 V48 Z" fill="#a06a3c" stroke="#3b2411" stroke-width="3"/>
+        <rect x="52" y="40" width="16" height="10" rx="2" fill="var(--rc)" stroke="#3b2411" stroke-width="2.5"/>
+      </g>
+    </svg>
+    <div id="drop" aria-live="polite"></div>
+    <div class="prog" id="prog"></div>
+    <div class="cols">
+      <div><h3>Tier 1</h3><div id="chests1"></div></div>
+      <div><h3>Tier 2</h3><div id="chests2"></div></div>
+      <div><h3>Tier 3</h3><div id="chests3"></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-items" hidden>
+    <h2>Your items <em id="tally"></em></h2>
+    <div id="list"></div>
+    <div class="empty" id="empty">Buy a chest to get your first item.</div>
+  </section>
+
+  <section class="panel" id="p-rebirth" hidden>
+    <div class="rb">
+      <h2>Rebirth <em>#<span id="rbn">0</span></em></h2>
+      <p>Rebirth resets your coins, items, chests and free chest, but doubles all the coins you earn from then on. Each rebirth costs twice as much as the last. There's no limit.</p>
+      <div class="rbrow"><span>Current bonus</span><b id="rbnow">×1</b></div>
+      <div class="rbrow"><span>After rebirth</span><b id="rbnext">×2</b></div>
+      <div class="rbrow"><span>Cost</span><b id="rbcost">20,000</b></div>
+      <button class="buy" id="rbbtn" style="width:100%;margin-top:12px;padding:12px"></button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-battle" hidden>
+    <div class="rb" style="margin-bottom:14px">
+      <h2>Monster <em>Lv <span id="mlv">1</span></em></h2>
+      <div class="hpbar"><div class="hpfill" id="hpfill" style="width:100%"></div></div>
+      <div class="rbrow"><span>Health</span><b id="mhp">5 / 5</b></div>
+      <div class="rbrow"><span>Reward</span><b id="mreward">1 battle coin</b></div>
+      <button class="buy" id="atkbtn" style="width:100%;margin-top:12px;padding:12px">Attack (−1 HP)</button>
+    </div>
+    <div class="rb">
+      <h2>Battle coins <em id="bcoins">0</em></h2>
+      <p>Spend battle coins on a permanent coin boost. Cost doubles every time you buy it.</p>
+      <div class="rbrow"><span>Current boost</span><b id="bnow">×1</b></div>
+      <div class="rbrow"><span>After buying</span><b id="bnext">×2</b></div>
+      <div class="rbrow"><span>Cost</span><b id="bcost">10 battle coins</b></div>
+      <button class="buy" id="bbuybtn" style="width:100%;margin-top:12px;padding:12px"></button>
+    </div>
+  </section>
+
+  <button id="reset">Reset game</button>
+</main>
+
+<div id="quiz" role="dialog" aria-modal="true" aria-labelledby="qh" hidden>
+  <div class="qbox">
+    <h3 id="qh">Math check</h3>
+    <p>Answer to open this chest. Use ± for negative answers.</p>
+    <div id="qtext"></div>
+    <div class="qin"><button id="sign" type="button" aria-label="Toggle negative">±</button><input id="ans" type="text" inputmode="numeric" autocomplete="off" aria-label="Your answer"></div>
+    <div id="qmsg" aria-live="polite"></div>
+    <div class="qbtns"><button id="qcancel" type="button">Cancel</button><button id="qgo" type="button">Submit</button></div>
+  </div>
+</div>
+
+<script>
+var C=[
+ {n:"Common",p:10,c:"#7d838a",names:["Rusty Coin Purse","Chipped Mug","Wooden Whistle","Dull Pocket Knife","Tin Compass","Frayed Rope","Cracked Lantern","Bent Spoon"]},
+ {n:"Uncommon",p:100,c:"#3f9d4f",names:["Brass Compass","Silver Locket","Copper Kettle","Hunter's Horn","Polished Lantern"]},
+ {n:"Rare",p:1000,c:"#3b7dd8",names:["Sapphire Ring","Runed Dagger","Storm Lantern","Jeweled Chalice","Silk Banner"]},
+ {n:"Epic",p:10000,c:"#9a4fd6",names:["Dragonbone Flute","Amethyst Crown","Phoenix Feather","Starforged Blade","Moonlit Mirror"]},
+ {n:"Legendary",p:100000,c:"#e0902a",names:["Sunblade","Crown of Kings","Titan's Hourglass","Golden Griffin","Worldtree Seed"]},
+ {n:"Mythic",p:1000000,c:"#d6406a",names:["Eclipse Orb","Void Lantern","Celestial Harp","Oath of Ages","Comet Crown"]},
+ {n:"Secret",p:10000000,c:"#1fb5b0",names:["The Missing Page","Whispering Key","Unnamed Relic","Door to Nowhere","The Last Coin"]},
+ {n:"Common 2",p:100000000,c:"#5f6b7a",names:["Iron Strongbox","Weathered Ledger","Merchant's Scale","Sturdy Backpack","Trade Charter"]},
+ {n:"Uncommon 2",p:1000000000,c:"#2fbf71",names:["Emerald Brooch","Guild Signet","Cartographer's Kit","Silver Anvil","Harvest Horn"]},
+ {n:"Rare 2",p:10000000000,c:"#2aa1e0",names:["Tidecaller Conch","Frostglass Orb","Knight's Standard","Sky Sextant","Deepwater Pearl"]},
+ {n:"Epic 2",p:100000000000,c:"#c04fe0",names:["Shadow Loom","Thunder Drum","Obsidian Throne","Dreamcatcher Spire","Warlock's Tome"]},
+ {n:"Legendary 2",p:1000000000000,c:"#f0b429",names:["Dawn Forge","Emperor's Scepter","Ancient Dragon Egg","Sunken Crown","Hero's Banner"]},
+ {n:"Mythic 2",p:10000000000000,c:"#f0507a",names:["Star Engine","Astral Gate","Chronicle of Ages","Heartflame Core","Godsteel Anvil"]},
+ {n:"Secret 2",p:100000000000000,c:"#6ee7e0",names:["The Hidden Vault","Cipher of Nothing","Forgotten Throne","Mirror of Origins","The First Coin"]},
+ {n:"Common 3",p:1000000000000000,c:"#8b8fa3",names:["Vault Keystone","Archivist's Seal","Ironclad Ledger","Wanderer's Pack","Founding Charter"]},
+ {n:"Uncommon 3",p:10000000000000000,c:"#27c98a",names:["Jade Sigil","Artisan's Gearbox","Ranger's Quiver","Bronze Astrolabe","Reaper's Sickle"]},
+ {n:"Rare 3",p:100000000000000000,c:"#2799f2",names:["Glacier Shard","Voidglass Lens","Paladin's Aegis","Comet Sextant","Abyssal Pearl"]},
+ {n:"Epic 3",p:1000000000000000000,c:"#b23bf0",names:["Nightweave Cloak","Tempest Drumline","Onyx Dominion","Nightmare Spire","Sorcerer's Codex"]},
+ {n:"Legendary 3",p:10000000000000000000,c:"#f5a623",names:["Solar Forge","Sovereign's Scepter","Wyrmking's Egg","Drowned Crown","Champion's Banner"]},
+ {n:"Mythic 3",p:100000000000000000000,c:"#f24d7a",names:["Nova Engine","Rift Gateway","Saga of Eternity","Emberheart Core","Skysteel Anvil"]},
+ {n:"Secret 3",p:1000000000000000000000,c:"#5fe8df",names:["The Sealed Vault","Cipher of Everything","Nameless Throne","Mirror of Endings","The Final Coin"]}
+];
+var hi=0;C.forEach(function(x,i){x.lo=hi+1;x.hi=i?hi*5:5;hi=x.hi;});
+var SLOTS=["commonChestSave","commonChestSave2","commonChestSave3"],ACTIVE="commonChestActiveSlot",MAXROWS=100;
+var BATTLE_UNLOCK=10000000000;
+var slot=parseInt(localStorage.getItem(ACTIVE)||"0",10);if(!(slot>=0&&slot<3))slot=0;
+function freshState(){return{coins:0,items:[],freeUsed:false,opened:0,rebirths:0,battleCoins:0,monsterLevel:0,monsterHP:5,battleBoosts:0,battleUnlocked:false}}
+function loadState(i){
+  var st=freshState();
+  try{var s=JSON.parse(localStorage.getItem(SLOTS[i])||"null");if(s&&typeof s.coins==="number"&&Array.isArray(s.items))st=s}catch(e){}
+  if(typeof st.freeUsed!=="boolean")st.freeUsed=st.items.length>0;
+  if(typeof st.opened!=="number")st.opened=st.items.length;
+  if(typeof st.rebirths!=="number")st.rebirths=0;
+  if(typeof st.battleCoins!=="number")st.battleCoins=0;
+  if(typeof st.monsterLevel!=="number")st.monsterLevel=0;
+  if(typeof st.battleBoosts!=="number")st.battleBoosts=0;
+  if(typeof st.monsterHP!=="number")st.monsterHP=5*Math.pow(2,st.monsterLevel);
+  if(typeof st.battleUnlocked!=="boolean")st.battleUnlocked=st.coins>=BATTLE_UNLOCK;
+  st.items.forEach(function(it){if(typeof it.r!=="number")it.r=0});
+  return st;
+}
+var state=loadState(slot);
+function save(){try{localStorage.setItem(SLOTS[slot],JSON.stringify(state))}catch(e){}}
+function mult(){return Math.pow(2,state.rebirths)}
+function rbCost(){return Math.round(20000*Math.pow(4,state.rebirths))}
+function battleMult(){return Math.pow(2,state.battleBoosts)}
+function bCost(){return Math.round(10*Math.pow(2,state.battleBoosts))}
+function monsterMaxHP(){return 5*Math.pow(2,state.monsterLevel)}
+function monsterReward(){return Math.pow(2,state.monsterLevel)}
+function rate(){return state.items.reduce(function(a,i){return a+i.cps},0)*mult()*battleMult()}
+function fmt(n){
+  n=Math.floor(n);var neg=n<0;n=Math.abs(n);
+  if(n<1000)return(neg?"-":"")+n.toLocaleString();
+  var suf="abcdefghijklmnopqrstuvwxyz";
+  var tier=Math.floor(Math.log10(n)/3);
+  var scaled=n/Math.pow(1000,tier);
+  while(scaled>=1000){tier++;scaled/=1000}
+  if(tier>suf.length)return(neg?"-":"")+n.toExponential(2).replace("e+","e");
+  var s=scaled>=10?String(Math.round(scaled)):String(Math.round(scaled*10)/10);
+  return(neg?"-":"")+s+suf[tier-1];
+}
+function price(r){return(r===0&&!state.freeUsed)?0:C[r].p}
+var $=function(id){return document.getElementById(id)};
+
+/* tabs */
+function showTab(t){
+  ["chests","items","rebirth","battle"].forEach(function(k){$("p-"+k).hidden=k!==t;$("t-"+k).setAttribute("aria-selected",k===t)});
+}
+$("t-chests").onclick=function(){showTab("chests")};
+$("t-items").onclick=function(){showTab("items")};
+$("t-rebirth").onclick=function(){showTab("rebirth")};
+$("t-battle").onclick=function(){if(state.battleUnlocked)showTab("battle")};
+var rbT=null;
+function rbLabel(){$("rbbtn").textContent="Rebirth: "+fmt(rbCost())}
+$("rbbtn").onclick=function(){
+  var c=rbCost(),b=$("rbbtn");
+  if(state.coins<c)return;
+  if(!rbT){
+    b.textContent="Tap again: this resets everything";
+    rbT=setTimeout(function(){rbT=null;rbLabel()},3000);
+    return;
+  }
+  clearTimeout(rbT);rbT=null;
+  state={coins:0,items:[],freeUsed:false,opened:0,rebirths:state.rebirths+1};
+  $("list").innerHTML="";$("drop").innerHTML="";
+  document.documentElement.style.removeProperty("--rc");
+  render();save();
+};
+
+$("atkbtn").onclick=function(){
+  state.monsterHP--;
+  if(state.monsterHP<=0){
+    state.battleCoins+=monsterReward();
+    state.monsterLevel++;
+    state.monsterHP=monsterMaxHP();
+  }
+  render();save();
+};
+$("bbuybtn").onclick=function(){
+  var c=bCost();
+  if(state.battleCoins<c)return;
+  state.battleCoins-=c;state.battleBoosts++;
+  render();save();
+};
+
+/* chest rows */
+C.forEach(function(x,i){
+  var d=document.createElement("div");d.className="row";d.style.setProperty("--rc",x.c);
+  d.innerHTML='<div><b>'+x.n+' chest</b><small>'+fmt(x.lo)+' to '+fmt(x.hi)+' coins/sec</small></div><button class="buy" id="b'+i+'"></button>';
+  $(i<7?"chests1":i<14?"chests2":"chests3").appendChild(d);
+  $("b"+i).onclick=function(){buy(i)};
+});
+
+var canPrev=false;
+var toastT=null;
+function showToast(msg){
+  var t=$("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show")},2000);
+}
+function render(){
+  if(!state.battleUnlocked&&state.coins>=BATTLE_UNLOCK)state.battleUnlocked=true;
+  $("t-battle").textContent=state.battleUnlocked?"Battle":"Battle 🔒";
+  $("t-battle").style.opacity=state.battleUnlocked?1:.6;
+  $("t-battle").style.cursor=state.battleUnlocked?"pointer":"not-allowed";
+  $("t-battle").title=state.battleUnlocked?"":"Unlocks at 10c coins";
+  if(!state.battleUnlocked&&document.getElementById("t-battle").getAttribute("aria-selected")==="true")showTab("chests");
+  $("coins").textContent=fmt(state.coins);
+  $("rate").textContent=fmt(rate());
+  $("count").textContent=state.items.length+" items, ×"+fmt(mult());
+  $("rbn").textContent=state.rebirths;
+  $("rbnow").textContent="×"+fmt(mult());
+  $("rbnext").textContent="×"+fmt(mult()*2);
+  $("rbcost").textContent=fmt(rbCost())+" coins";
+  if(!rbT)$("rbbtn").textContent="Rebirth: "+fmt(rbCost());
+  $("rbbtn").disabled=state.coins<rbCost();
+  var can=state.coins>=rbCost();
+  $("rbbadge").hidden=!can;
+  if(can&&!canPrev)showToast("You can rebirth!");
+  canPrev=can;
+  $("tally").textContent=state.items.length?state.items.length+" total":"";
+  $("empty").style.display=state.items.length?"none":"block";
+  var left=15-(state.opened%15);
+  $("prog").textContent=left===1?"Next chest has a math question.":"Math question in "+left+" chests.";
+  $("mlv").textContent=state.monsterLevel+1;
+  $("mhp").textContent=fmt(Math.max(0,state.monsterHP))+" / "+fmt(monsterMaxHP());
+  var rw=monsterReward();
+  $("mreward").textContent=fmt(rw)+" battle coin"+(rw===1?"":"s");
+  $("hpfill").style.width=Math.max(0,state.monsterHP/monsterMaxHP()*100)+"%";
+  $("bcoins").textContent=fmt(state.battleCoins);
+  $("bnow").textContent="×"+fmt(battleMult());
+  $("bnext").textContent="×"+fmt(battleMult()*2);
+  $("bcost").textContent=fmt(bCost())+" battle coins";
+  $("bbuybtn").textContent="Buy boost: "+fmt(bCost());
+  $("bbuybtn").disabled=state.battleCoins<bCost();
+  C.forEach(function(x,i){
+    var p=price(i),b=$("b"+i);
+    b.textContent=p===0?"Free":"Buy: "+fmt(p);
+    b.disabled=state.coins<p;
+  });
+}
+function addRow(it){
+  var c=C[it.r],d=document.createElement("div");
+  d.className="item";d.style.setProperty("--rc",c.c);
+  d.innerHTML='<div>'+it.name+'<small>'+c.n+'</small></div><span>+'+fmt(it.cps)+'/sec</span>';
+  var l=$("list");l.insertBefore(d,l.firstChild);
+  while(l.children.length>MAXROWS)l.removeChild(l.lastChild);
+}
+function buy(r){
+  if(state.coins<price(r))return;
+  if((state.opened+1)%15===0){askQuestion(r);return}
+  doBuy(r);
+}
+var pendingR=0,qa=0,neg=false;
+function newQ(){
+  var a,b;
+  do{a=Math.floor(Math.random()*19)-9}while(a===0);
+  do{b=Math.floor(Math.random()*19)-9}while(b===0);
+  qa=a*b;
+  $("qtext").textContent=(a<0?"(−"+(-a)+")":a)+" × "+(b<0?"(−"+(-b)+")":b);
+  $("ans").value="";neg=false;
+}
+function askQuestion(r){
+  pendingR=r;newQ();$("qmsg").textContent="";
+  $("quiz").hidden=false;$("ans").focus();
+}
+function setSign(){
+  var v=$("ans").value.replace(/[−-]/g,"");
+  neg=!neg;$("ans").value=(neg?"-":"")+v;
+}
+function submitQ(){
+  var raw=$("ans").value.replace("−","-").trim();
+  if(!/^-?\d+$/.test(raw)){$("qmsg").textContent="Enter a whole number.";return}
+  if(parseInt(raw,10)===qa){$("quiz").hidden=true;doBuy(pendingR)}
+  else{$("qmsg").textContent="Not quite. Here's a new question.";newQ()}
+}
+$("sign").onclick=setSign;
+$("qgo").onclick=submitQ;
+$("qcancel").onclick=function(){$("quiz").hidden=true};
+$("ans").onkeydown=function(e){if(e.key==="Enter")submitQ()};
+function doBuy(r){
+  var p=price(r);
+  if(state.coins<p)return;
+  state.coins-=p;state.opened++;
+  if(r===0)state.freeUsed=true;
+  var c=C[r],it={r:r,name:c.names[Math.floor(Math.random()*c.names.length)],cps:c.lo+Math.floor(Math.random()*(c.hi-c.lo+1))};
+  state.items.push(it);addRow(it);
+  document.documentElement.style.setProperty("--rc",c.c);
+  $("drop").innerHTML='<div class="card"><span>'+c.n+'</span><b>'+it.name+'</b><i>+'+fmt(it.cps)+' coins per second</i></div>';
+  var im=$("chestimg");im.classList.add("open");
+  setTimeout(function(){im.classList.remove("open")},450);
+  render();save();
+}
+state.items.slice(-MAXROWS).forEach(addRow);
+
+function switchSlot(i){
+  if(i===slot)return;
+  save();
+  slot=i;localStorage.setItem(ACTIVE,String(i));
+  state=loadState(i);
+  canPrev=state.coins>=rbCost();
+  [0,1,2].forEach(function(k){$("slot"+k).setAttribute("aria-pressed",String(k===i))});
+  $("list").innerHTML="";$("drop").innerHTML="";
+  document.documentElement.style.removeProperty("--rc");
+  state.items.slice(-MAXROWS).forEach(addRow);
+  render();
+}
+[0,1,2].forEach(function(k){$("slot"+k).onclick=function(){switchSlot(k)}});
+[0,1,2].forEach(function(k){$("slot"+k).setAttribute("aria-pressed",String(k===slot))});
+
+/* reset: two taps, since browser pop-ups are blocked here */
+var rt=null;
+$("reset").onclick=function(){
+  var r=$("reset");
+  if(!rt){
+    r.textContent="Tap again to confirm reset";r.style.color="#c0492f";r.style.borderColor="#c0492f";
+    rt=setTimeout(function(){rt=null;r.textContent="Reset game";r.style.color="";r.style.borderColor=""},3000);
+    return;
+  }
+  clearTimeout(rt);rt=null;r.textContent="Reset game";r.style.color="";r.style.borderColor="";
+  state={coins:0,items:[],freeUsed:false,opened:0,rebirths:0,battleCoins:0,monsterLevel:0,monsterHP:5,battleBoosts:0,battleUnlocked:false};
+  $("list").innerHTML="";$("drop").innerHTML="";
+  document.documentElement.style.removeProperty("--rc");
+  render();save();
+};
+
+canPrev=state.coins>=rbCost();
+setInterval(function(){state.coins+=rate();render();save()},1000);
+render();
+</script>
+</body>
+</html>
